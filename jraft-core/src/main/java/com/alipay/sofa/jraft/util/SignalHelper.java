@@ -31,6 +31,8 @@ public final class SignalHelper {
 
     private static final SignalAccessor SIGNAL_ACCESSOR = getSignalAccessor0();
 
+    public static final String          SIG_BREAK      =  "BREAK";
+
     public static final String          SIG_USR2        = "USR2";
 
     public static boolean supportSignal() {

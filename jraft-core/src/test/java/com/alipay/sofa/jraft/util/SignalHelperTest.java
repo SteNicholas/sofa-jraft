@@ -27,14 +27,18 @@ public class SignalHelperTest {
 
     public static void main(String[] args) throws InterruptedException {
         // test with:
-        //
+        // kill -s BREAK pid
         // kill -s USR2 pid
 
         final List<JRaftSignalHandler> handlers = new ArrayList<>();
         handlers.add((signalName) -> System.out.println("signal test: " + signalName));
 
         if (SignalHelper.supportSignal()) {
-            SignalHelper.addSignal(SignalHelper.SIG_USR2, handlers);
+            if(Platform.isWindows()) {
+                SignalHelper.addSignal(SignalHelper.SIG_BREAK, handlers);
+            } else {
+                SignalHelper.addSignal(SignalHelper.SIG_USR2, handlers);
+            }
         }
 
         Thread.sleep(300000);

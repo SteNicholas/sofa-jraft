@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.alipay.sofa.jraft.util.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,18 +97,6 @@ import com.alipay.sofa.jraft.storage.RaftMetaStorage;
 import com.alipay.sofa.jraft.storage.SnapshotExecutor;
 import com.alipay.sofa.jraft.storage.impl.LogManagerImpl;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotExecutorImpl;
-import com.alipay.sofa.jraft.util.DisruptorBuilder;
-import com.alipay.sofa.jraft.util.JRaftServiceLoader;
-import com.alipay.sofa.jraft.util.JRaftSignalHandler;
-import com.alipay.sofa.jraft.util.LogExceptionHandler;
-import com.alipay.sofa.jraft.util.NamedThreadFactory;
-import com.alipay.sofa.jraft.util.OnlyForTest;
-import com.alipay.sofa.jraft.util.RepeatedTimer;
-import com.alipay.sofa.jraft.util.Requires;
-import com.alipay.sofa.jraft.util.SignalHelper;
-import com.alipay.sofa.jraft.util.ThreadHelper;
-import com.alipay.sofa.jraft.util.ThreadId;
-import com.alipay.sofa.jraft.util.Utils;
 import com.google.protobuf.Message;
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventFactory;
@@ -132,8 +121,12 @@ public class NodeImpl implements Node, RaftServerService {
         try {
             if (SignalHelper.supportSignal()) {
                 final List<JRaftSignalHandler> handlers = JRaftServiceLoader.load(JRaftSignalHandler.class) //
-                    .sort();
-                SignalHelper.addSignal(SignalHelper.SIG_USR2, handlers);
+                        .sort();
+                if (Platform.isWindows()) {
+                    SignalHelper.addSignal(SignalHelper.SIG_BREAK, handlers);
+                } else {
+                    SignalHelper.addSignal(SignalHelper.SIG_USR2, handlers);
+                }
             }
         } catch (final Throwable t) {
             LOG.warn("Fail to add signal.", t);
