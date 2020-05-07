@@ -20,10 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.grpc.MethodDescriptor;
-import io.grpc.Server;
-import io.grpc.ServerCallHandler;
-import io.grpc.ServerServiceDefinition;
+import io.grpc.*;
 import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.ServerCalls;
 import io.grpc.util.MutableHandlerRegistry;
@@ -94,41 +91,41 @@ public class GrpcServer implements RpcServer {
                 .<Message, Message>newBuilder() //
                 .setType(MethodDescriptor.MethodType.UNARY) //
                 .setFullMethodName(
-                    MethodDescriptor.generateFullMethodName(processor.interest(), GrpcRaftRpcFactory.FIXED_METHOD_NAME)) //
+                        MethodDescriptor.generateFullMethodName(processor.interest(), GrpcRaftRpcFactory.FIXED_METHOD_NAME)) //
                 .setRequestMarshaller(ProtoUtils.marshaller(reqIns)) //
                 .setResponseMarshaller(ProtoUtils.marshaller(this.marshallerRegistry.findResponseInstanceByRequest(interest))) //
                 .build();
-
+        
         final ServerCallHandler<Message, Message> handler = ServerCalls.asyncUnaryCall(
                 (request, responseObserver) -> {
                     final RpcContext rpcCtx = new RpcContext() {
-
+                        
                         @Override
                         public void sendResponse(final Object responseObj) {
                             responseObserver.onNext((Message) responseObj);
                             responseObserver.onCompleted();
                         }
-
+                        
                         @Override
                         public Connection getConnection() {
                             throw new UnsupportedOperationException("unsupported");
                         }
-
+                        
                         @Override
                         public String getRemoteAddress() {
-                            return null;
+                            return Context.key("remoteAddress").get().toString();
                         }
                     };
-
+                    
                     processor.handleRequest(rpcCtx, request);
                 });
-
+        
         final ServerServiceDefinition serviceDef = ServerServiceDefinition //
                 .builder(processor.interest()) //
                 .addMethod(method, handler) //
                 .build();
-
-        this.handlerRegistry.addService(serviceDef);
+        
+        this.handlerRegistry.addService(ServerInterceptors.intercept(serviceDef, new GrpcServerInterceptor()));
     }
 
     @Override
